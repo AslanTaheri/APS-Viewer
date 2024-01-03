@@ -98,3 +98,46 @@ service.uploadObject = async (objectName, filePath) => {
     return results[0].completed;
   }
 };
+
+// MODEL DERIVATIVES
+service.translateObject = async (urn, rootFileName) => {
+  const job = {
+    input: { urn },
+    output: { formats: [{ type: "svf", views: ["2d", "3d"] }] },
+  };
+
+  if (rootFileName) {
+    job.input.compressedUrn = true;
+    job.input.rootFileName = rootFileName;
+  }
+
+  const resp = await new APS.DerivativesApi().translate(
+    job,
+    {},
+    null,
+    await service.getInternalToken()
+  );
+
+  return resp.body;
+};
+
+service.getManifest = async (urn) => {
+  try {
+    const resp = await new APS.DerivativesApi().getManifest(
+      urn,
+      {},
+      null,
+      await service.getInternalToken()
+    );
+    return resp.body;
+  } catch (err) {
+    if (err.response.status === 404) {
+      return null;
+    } else {
+      throw err;
+    }
+  }
+};
+
+// BUILDING THE BASE64 URN BASED ON RESOURCE ID
+service.urnify = (id) => Buffer.from(id).toString("base64").replace(/=/g, "");
